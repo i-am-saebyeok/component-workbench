@@ -14,7 +14,7 @@ npx component-workbench init
 npm run workbench
 ```
 
-GitHub private 저장소의 태그로 전달하며 npm registry에는 publish하지 않습니다. v0.1.0 태그는 실제 검수 뒤 생성합니다. 패키지를 먼저 설치해야 생성한 npm scripts와 MCP가 해당 서비스의 로컬 도구를 실행할 수 있습니다.
+GitHub private 저장소의 태그로 전달하며 npm registry에는 publish하지 않습니다. 패키지를 먼저 설치해야 생성한 npm scripts와 MCP가 해당 서비스의 로컬 도구를 실행할 수 있습니다.
 
 ## init 결과와 기존 파일 보존
 
