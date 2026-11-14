@@ -15,8 +15,9 @@
 | 실제 npm pack | 27개 파일, version=0.1.2·bin=dist/src/cli.js. compiled JS·정적 자산·빈 템플릿·schema·MIT LICENSE 포함, TS 소스/테스트/compiler 제외 |
 | compiler 없는 소비 서비스 | tarball과 로컬 Git prepare를 --omit=dev로 설치해 8/8 통과. compiler 0개·빈 init·validate·웹·두 프로젝트 stdio/HTTP MCP·BDD·선택 유지 확인 |
 | schema | 생성 결과와 기존 schema가 바이트 단위로 동일 |
-| 공개 Git SHA 설치 | 자격증명 없이 0b6a541을 --omit=dev로 설치해 8/8 통과. prepare 산출물·version=0.1.2·compiler 0개·웹/MCP/선택 유지 확인 |
+| 공개 Git SHA·태그 설치 | 자격증명 없이 0b6a541과 v0.1.2를 각각 --omit=dev로 설치해 8/8 통과. prepare 산출물·version=0.1.2·compiler 0개·웹/MCP/선택 유지 확인 |
 | [Hosted CI](https://github.com/i-am-saebyeok/component-workbench/actions/runs/43566037220) | Node 22.12.0/24 두 job 모두 성공. npm ci prepare·typecheck·52개 검사·OpenSpec 검증 통과 |
+| OpenSpec strict·whitespace | 8/8 완료·변경 보관, 최종 spec 2/2·whitespace 통과 |
 
 정상 화면 구성과 서비스 소유 init/BDD/선택 계약을 유지했습니다. 타입 경계를 정리하면서 오류 알림 끝에 잘못 붙던 null 문자열을 제거했습니다.
 

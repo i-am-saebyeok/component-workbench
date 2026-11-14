@@ -1,6 +1,9 @@
-# Spec Delta
+# typescript-toolchain Specification
 
-## ADDED Requirements
+## Purpose
+도구의 생산 TS를 고정 컴파일러로 검사하고, Node·브라우저와 compiler 없는 소비 서비스에서 실행되는 JS 배포 계약을 정의한다.
+
+## Requirements
 
 ### Requirement: 고정된 TypeScript로 생산 소스 검사
 
