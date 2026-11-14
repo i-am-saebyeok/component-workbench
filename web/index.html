@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Component Workbench</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="importmap">{"imports":{"three":"/vendor/three/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <h1 id="title" class="brand-title">Component Workbench</h1>
+      </div>
+      <div class="topbar-actions">
+        <span id="connection" class="connection" data-state="connecting" role="status" aria-live="polite">
+          <span class="connection-dot" aria-hidden="true"></span><span id="connection-text">연결 중</span>
+        </span>
+        <button type="button" id="docs-toggle" class="button" aria-expanded="false" aria-controls="docs-drawer" hidden>문서</button>
+      </div>
+    </header>
+
+    <div id="notice" class="notice" role="alert" hidden></div>
+
+    <section id="empty" class="empty" hidden>
+      <h2 class="empty-title">등록된 컴포넌트가 없습니다</h2>
+      <p><code id="empty-catalog"></code>의 <code>components</code>에 정의를 추가하면 이 화면에 나타납니다.</p>
+    </section>
+
+    <main id="workspace" class="workspace" hidden>
+      <nav class="components" aria-labelledby="components-title">
+        <h2 id="components-title" class="label">컴포넌트</h2>
+        <ul id="component-list" class="component-list"></ul>
+      </nav>
+
+      <section class="viewport" aria-label="미리보기">
+        <div id="box-host" class="preview-host" data-rendered="false" hidden></div>
+        <iframe id="html-host" class="preview-host html-host" title="미리보기" hidden></iframe>
+        <p id="no-preview" class="no-preview" hidden>미리보기가 없습니다</p>
+        <button type="button" id="reset-view" class="button reset-view" hidden>시점 초기화</button>
+      </section>
+
+      <section class="choice" aria-label="선택">
+        <div id="variant-area" class="variant-area">
+          <h2 id="variant-title" class="label">Variant</h2>
+          <div id="variant-group" class="variant-group" role="radiogroup" aria-labelledby="variant-title"></div>
+        </div>
+        <div class="select-area">
+          <button type="button" id="select-button" class="cta">이 컴포넌트 선택</button>
+          <p id="current-selection" class="current-selection"></p>
+          <p id="select-message" class="select-message" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+    </main>
+
+    <aside id="docs-drawer" class="drawer" aria-labelledby="docs-title" hidden>
+      <div class="drawer-head">
+        <h2 id="docs-title" class="drawer-title" tabindex="-1">문서</h2>
+        <div class="tabs" role="tablist" aria-label="문서 종류">
+          <button type="button" role="tab" id="tab-usage" class="tab" aria-selected="true" aria-controls="panel-usage">용도</button>
+          <button type="button" role="tab" id="tab-bdd" class="tab" aria-selected="false" aria-controls="panel-bdd" tabindex="-1">BDD</button>
+        </div>
+        <button type="button" id="docs-close" class="button">닫기</button>
+      </div>
+      <div id="panel-usage" class="tab-panel" role="tabpanel" aria-labelledby="tab-usage"></div>
+      <div id="panel-bdd" class="tab-panel" role="tabpanel" aria-labelledby="tab-bdd" hidden></div>
+    </aside>
+  </body>
+</html>

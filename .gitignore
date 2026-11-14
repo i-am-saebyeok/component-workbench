@@ -1,0 +1,6 @@
+node_modules/
+coverage/
+.cache/
+*.tgz
+npm-debug.log*
+.claude/settings.local.json

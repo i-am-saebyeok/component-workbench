@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "revision": 2,
+  "components": [
+    {
+      "id": "storage-panel",
+      "name": "보관 설비 패널",
+      "description": "공간 설계에서 검토하는 보관 설비 패널 모듈 예시다.",
+      "intended_uses": [
+        "길이 3m·깊이 1m·높이 1.5m의 보관 설비 패널 모듈을 공간 설계에서 검토한다.",
+        "제품 치수와 파란 금속 외형을 확인하고 선택 기록을 전달하기 위한 예시다."
+      ],
+      "avoid_uses": [
+        "이 미리보기로 실제 하중·수납 용량·제품 안전·충돌 또는 보관 설비 기능이 구현/검증됐다고 판단하지 않는다.",
+        "회전/zoom만으로 저장 선택을 변경하지 않는다."
+      ],
+      "bdd": ["behaviors/storage-panel.feature"],
+      "preview": { "type": "box", "dimensions_m": [3, 1, 1.5] },
+      "variants": [
+        {
+          "id": "metal-blue",
+          "name": "파란 금속",
+          "material": { "base_color_srgb_hex": "#4F7AA8", "roughness": 0.4, "metallic": 0.7 }
+        }
+      ]
+    }
+  ]
+}

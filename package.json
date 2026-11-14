@@ -1,0 +1,42 @@
+{
+  "name": "@i-am-saebyeok/component-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Service-local component catalog tooling with web previews, MCP, and BDD documentation.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/i-am-saebyeok/component-workbench.git"
+  },
+  "bin": {
+    "component-workbench": "src/cli.js"
+  },
+  "files": [
+    "src/",
+    "web/",
+    "templates/",
+    "schema/",
+    "docs/verification.md"
+  ],
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "qa:browser": "node test/browser/qa.js",
+    "schema": "node scripts/write-schema.js",
+    "openspec:validate": "openspec validate --all --strict --no-interactive"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "2.1.2",
+    "@modelcontextprotocol/server": "2.4.0",
+    "smol-toml": "1.9.1",
+    "three": "0.187.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@fission-ai/openspec": "2.0.0",
+    "@modelcontextprotocol/client": "2.4.0",
+    "playwright-core": "1.62.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

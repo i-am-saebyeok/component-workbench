@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "components": [
+    {
+      "id": "button",
+      "name": "HTML 버튼",
+      "description": "서비스가 소유한 static HTML 버튼 예시다.",
+      "intended_uses": [
+        "서비스가 소유한 static HTML에서 같은 버튼의 강조형 primary와 보조형 secondary를 비교한다.",
+        "실제 click counter로 preview의 입력 반응을 확인한다."
+      ],
+      "avoid_uses": [
+        "click counter를 실제 제품의 결제·제출·저장 기능으로 해석하지 않는다.",
+        "preview 내부 클릭이 workbench 선택을 저장하는 것으로 혼동하지 않는다.",
+        "프레임워크 dev server나 임의 원격 페이지를 실행하는 예시가 아니다."
+      ],
+      "bdd": ["behaviors/button.feature"],
+      "variants": [
+        { "id": "primary", "name": "Primary", "preview": { "type": "html", "src": "button/primary.html" } },
+        { "id": "secondary", "name": "Secondary", "preview": { "type": "html", "src": "button/secondary.html" } }
+      ]
+    }
+  ]
+}
