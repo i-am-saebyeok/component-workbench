@@ -1,6 +1,6 @@
 # 검증 기록
 
-## 0.1.1 공개 배포 준비
+## 0.1.1 공개 배포 검증
 
 2026-11-14에 [GitHub 공식 MIT 템플릿](https://choosealicense.com/licenses/mit/)으로 LICENSE를 추가했습니다. 저작권 표기는 2026 i-am-saebyeok이며 package/lock 버전은 0.1.1, license는 MIT입니다. private=true는 npm registry 발행 방지용으로 유지합니다.
 
@@ -9,9 +9,12 @@
 | `npm ci --ignore-scripts` | 잠금파일 설치 성공 |
 | 실제 `npm pack` | LICENSE 포함 26개 파일. 패키지의 LICENSE 원문과 version=0.1.1·license=MIT·private=true 확인 |
 | `npm test` | Node 24.19.0에서 48/48 통과, 실패·건너뜀 0개 |
-| OpenSpec strict·whitespace | 전체 2/2·변경 검증 통과, 진단 없음 |
+| OpenSpec strict·whitespace | 5/5 완료·변경 보관, 최종 spec 1/1·whitespace 통과 |
+| GitHub 공개·라이선스 | 비인증 API에서 visibility=public·private=false·SPDX MIT 확인 |
+| 공개 Git 태그 설치 | 자격증명 없이 `v0.1.1` 설치·init·validate 성공. version=0.1.1·license=MIT·LICENSE 존재·components=0·선택 파일 미생성 확인 |
+| [Hosted CI](https://github.com/i-am-saebyeok/component-workbench/actions/runs/43561615722) | Node 22.12.0/24 두 job 모두 성공. 설치·48개 테스트·OpenSpec 검증 통과 |
 
-runtime은 변경하지 않았습니다. Opus xhigh가 기존 테스트의 LICENSE 파일 목록과 설치 안내 버전 기대값만 갱신했습니다. v0.1.0은 유지했으며 저장소 공개 전환·push·v0.1.1 태그·공개 Git 설치·새 hosted CI는 루트 수행 전입니다.
+runtime은 변경하지 않았습니다. Opus xhigh가 기존 테스트의 LICENSE 파일 목록과 설치 안내 버전 기대값만 갱신했습니다. 저장소를 공개하고 v0.1.1을 배포했습니다. 기존 v0.1.0 태그는 유지했습니다.
 
 ## 0.1.0 검증
 
