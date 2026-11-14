@@ -2,19 +2,19 @@
 
 서비스에서 설치·초기화해 사용하는 컴포넌트 탐색 도구입니다. 웹 미리보기·variant 선택·MCP·용도/BDD 읽기를 제공합니다. 컴포넌트 라이브러리를 배포하는 도구가 아닙니다. 정의·variant·에셋·문서는 각 서비스가 소유하며 `init` 기본 카탈로그는 **컴포넌트 0개**입니다.
 
-이 README는 사용 계약과 초기 지원 범위를 설명합니다. 실제 배포 태그·명령 검증·남은 항목은 [검증 기록](docs/verification.md)에 구분합니다.
+도구는 [MIT 라이선스](LICENSE)로 공개합니다. 실제 배포 태그·명령 검증·남은 항목은 [검증 기록](docs/verification.md)에 구분합니다.
 
 ## 설치하고 시작하기
 
-Node.js 22.12.0 이상과 private 저장소 접근 권한이 필요합니다. 소비 서비스 디렉토리에서 배포 태그를 로컬 개발 의존성으로 설치합니다. `package.json`이 없는 서비스는 먼저 `npm init -y`를 실행합니다.
+Node.js 22.12.0 이상이 필요합니다. 소비 서비스 디렉토리에서 배포 태그를 로컬 개발 의존성으로 설치합니다. `package.json`이 없는 서비스는 먼저 `npm init -y`를 실행합니다.
 
 ```sh
-npm install -D git+https://github.com/i-am-saebyeok/component-workbench.git#v0.1.0
+npm install -D git+https://github.com/i-am-saebyeok/component-workbench.git#v0.1.1
 npx component-workbench init
 npm run workbench
 ```
 
-GitHub private 저장소의 태그로 전달하며 npm registry에는 publish하지 않습니다. 패키지를 먼저 설치해야 생성한 npm scripts와 MCP가 해당 서비스의 로컬 도구를 실행할 수 있습니다.
+GitHub 공개 저장소의 태그로 배포합니다. npm registry에는 publish하지 않으며 `package.json`의 `private: true`는 registry 발행 방지용입니다. 저장소 공개 여부와는 별개입니다. 패키지를 먼저 설치해야 생성한 npm scripts와 MCP가 해당 서비스의 로컬 도구를 실행할 수 있습니다.
 
 ## init 결과와 기존 파일 보존
 

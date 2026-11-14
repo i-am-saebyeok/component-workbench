@@ -1,5 +1,20 @@
 # 검증 기록
 
+## 0.1.1 공개 배포 준비
+
+2026-11-14에 [GitHub 공식 MIT 템플릿](https://choosealicense.com/licenses/mit/)으로 LICENSE를 추가했습니다. 저작권 표기는 2026 i-am-saebyeok이며 package/lock 버전은 0.1.1, license는 MIT입니다. private=true는 npm registry 발행 방지용으로 유지합니다.
+
+| 검사 | 실제 결과 |
+| --- | --- |
+| `npm ci --ignore-scripts` | 잠금파일 설치 성공 |
+| 실제 `npm pack` | LICENSE 포함 26개 파일. 패키지의 LICENSE 원문과 version=0.1.1·license=MIT·private=true 확인 |
+| `npm test` | Node 24.19.0에서 48/48 통과, 실패·건너뜀 0개 |
+| OpenSpec strict·whitespace | 전체 2/2·변경 검증 통과, 진단 없음 |
+
+runtime은 변경하지 않았습니다. Opus xhigh가 기존 테스트의 LICENSE 파일 목록과 설치 안내 버전 기대값만 갱신했습니다. v0.1.0은 유지했으며 저장소 공개 전환·push·v0.1.1 태그·공개 Git 설치·새 hosted CI는 루트 수행 전입니다.
+
+## 0.1.0 검증
+
 2026-11-14, `@i-am-saebyeok/component-workbench` 0.1.0. 구현·검사 코드는 Claude Opus xhigh, 문서·화면·결과 검수는 Sol xhigh가 담당했습니다.
 
 | 검사 | 실제 결과 |

@@ -69,6 +69,7 @@ async function textFiles(dir) {
 
 test('the tarball carries only the tool: runtime, web, templates, schema and docs; no tests, fixtures or other service data', async () => {
   assert.deepEqual(packed.files, [
+    'LICENSE',
     'README.md',
     'docs/verification.md',
     'package.json',
