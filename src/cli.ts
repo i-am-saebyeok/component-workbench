@@ -4,7 +4,7 @@
 import { parseArgs } from 'node:util';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { loadConfig, mcpServerName } from './config.js';
-import { toWorkbenchError } from './errors.js';
+import { messageOf, systemCode, toWorkbenchError } from './errors.js';
 import { startHttpServer } from './http.js';
 import { InitError, MCP_COMMAND, runInit } from './init.js';
 import { createMcpServer } from './mcp.js';
@@ -17,7 +17,11 @@ const USAGE = `usage:
   component-workbench recipe [--config FILE]
   component-workbench validate [--config FILE]`;
 
-const OPTIONS = {
+type Command = 'init' | 'serve' | 'mcp' | 'recipe' | 'validate';
+/** 명령마다 OPTIONS에 있는 문자열 옵션만 들어온다. */
+type Values = { target?: string | undefined; name?: string | undefined; title?: string | undefined; config?: string | undefined; port?: string | undefined };
+
+const OPTIONS: Record<Command, Record<string, { type: 'string' }>> = {
   init: { target: { type: 'string' }, name: { type: 'string' }, title: { type: 'string' } },
   serve: { config: { type: 'string' }, port: { type: 'string' } },
   mcp: { config: { type: 'string' } },
@@ -25,14 +29,14 @@ const OPTIONS = {
   validate: { config: { type: 'string' } },
 };
 
-function fail(message) {
+function fail(message: string): never {
   process.stderr.write(`${message}\n`);
   process.exit(1);
 }
 
-const errorText = (error) => JSON.stringify({ error: toWorkbenchError(error).toJSON() }, null, 2);
+const errorText = (error: unknown) => JSON.stringify({ error: toWorkbenchError(error).toJSON() }, null, 2);
 
-async function service(values) {
+async function service(values: Values) {
   try {
     return createWorkbenchService(await loadConfig({ configFile: values.config }));
   } catch (error) {
@@ -40,7 +44,7 @@ async function service(values) {
   }
 }
 
-async function init(values) {
+async function init(values: Values) {
   try {
     const plan = await runInit({ target: values.target, name: values.name, title: values.title });
     const key = mcpServerName(plan.config.name);
@@ -60,7 +64,7 @@ async function init(values) {
   }
 }
 
-async function serve(values) {
+async function serve(values: Values) {
   const workbench = await service(values);
   const port = values.port === undefined ? workbench.config.server.port : Number(values.port);
   if (!Number.isInteger(port) || port < 0 || port > 65535) fail(`잘못된 포트: ${values.port}`);
@@ -68,12 +72,12 @@ async function serve(values) {
   try {
     running = await startHttpServer({ service: workbench, port });
   } catch (error) {
-    if (error.code === 'EADDRINUSE') fail(`포트 ${port}를 이미 다른 프로세스가 쓰고 있다. 그 프로세스는 건드리지 않는다. config의 server.port를 바꾸거나 --port로 지정한다.`);
+    if (systemCode(error) === 'EADDRINUSE') fail(`포트 ${port}를 이미 다른 프로세스가 쓰고 있다. 그 프로세스는 건드리지 않는다. config의 server.port를 바꾸거나 --port로 지정한다.`);
     throw error;
   }
   const catalog = await workbench.listComponents().then(
     (list) => `컴포넌트 ${list.components.length}개`,
-    (error) => `정의 오류 — ${toWorkbenchError(error).message} (웹에서 문제 목록을 볼 수 있다)`,
+    (error: unknown) => `정의 오류 — ${toWorkbenchError(error).message} (웹에서 문제 목록을 볼 수 있다)`,
   );
   process.stderr.write(`${workbench.config.title} workbench: ${running.url}\nMCP (HTTP): ${running.mcpUrl}\nconfig: ${workbench.config.file}\ncatalog: ${catalog}\n`);
   const stop = async () => {
@@ -84,13 +88,13 @@ async function serve(values) {
   process.once('SIGTERM', stop);
 }
 
-async function mcp(values) {
+async function mcp(values: Values) {
   const workbench = await service(values);
   // 정의 오류는 연결을 막지 않고 각 도구 결과(catalog_invalid)로 보고한다.
-  serveStdio(() => createMcpServer(workbench), { onerror: (error) => process.stderr.write(`${error?.stack ?? error}\n`) });
+  serveStdio(() => createMcpServer(workbench), { onerror: (error) => process.stderr.write(`${error.stack ?? error}\n`) });
 }
 
-async function recipe(values) {
+async function recipe(values: Values) {
   const workbench = await service(values);
   try {
     process.stdout.write(`${JSON.stringify(await workbench.getRecipe(), null, 2)}\n`);
@@ -99,7 +103,7 @@ async function recipe(values) {
   }
 }
 
-async function validate(values) {
+async function validate(values: Values) {
   const workbench = await service(values);
   try {
     const list = await workbench.listComponents();
@@ -118,12 +122,14 @@ async function validate(values) {
 }
 
 const commands = { init, serve, mcp, recipe, validate };
+const isCommand = (value: string | undefined): value is Command => value !== undefined && Object.hasOwn(commands, value);
+
 const [command, ...rest] = process.argv.slice(2);
-if (!commands[command]) fail(USAGE);
-let values;
+if (!isCommand(command)) fail(USAGE);
+let values: Values;
 try {
   ({ values } = parseArgs({ args: rest, options: OPTIONS[command], strict: true, allowPositionals: false }));
 } catch (error) {
-  fail(`${error.message}\n${USAGE}`);
+  fail(`${messageOf(error)}\n${USAGE}`);
 }
 await commands[command](values);

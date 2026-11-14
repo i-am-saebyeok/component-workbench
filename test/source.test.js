@@ -4,9 +4,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'node:test';
-import { CONFIG_FILE, loadConfig } from '../src/config.js';
-import { parseFeature } from '../src/gherkin.js';
-import { loadSource } from '../src/source.js';
+import { CONFIG_FILE, loadConfig } from '../dist/src/config.js';
+import { parseFeature } from '../dist/src/gherkin.js';
+import { loadSource } from '../dist/src/source.js';
 import { makeService, readJson, rejectsWith, selectFresh, serviceAt, sha256, writeJson } from './helpers.js';
 
 const component = (overrides = {}) => ({

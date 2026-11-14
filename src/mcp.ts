@@ -1,11 +1,13 @@
 // 공통 서비스 위의 MCP 표면. Streamable HTTP(요청마다 새 인스턴스)와 stdio(연결마다 하나)가
 // 같은 factory를 쓴다. 원본 읽기·검증·선택 저장만 노출하고 파일 접근 도구는 없다.
 import { McpServer, ResourceNotFoundError, ResourceTemplate } from '@modelcontextprotocol/server';
-import pkg from '../package.json' with { type: 'json' };
+import type { CallToolResult, TextContent } from '@modelcontextprotocol/server';
 import { mcpServerName } from './config.js';
 import { toWorkbenchError } from './errors.js';
+import { PACKAGE } from './package.js';
 import { z } from './schemas.js';
 import { ComponentQuery, DOC_URI_PREFIX, SelectInput, ValidateInput } from './service.js';
+import type { WorkbenchService } from './service.js';
 
 const INSTRUCTIONS = [
   '이 서비스가 소유한 컴포넌트 카탈로그다. 컴포넌트·variant·preview·용도/BDD는 서비스 파일에서 읽으며 도구에 기본 컴포넌트는 없다.',
@@ -17,10 +19,10 @@ const INSTRUCTIONS = [
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const NO_INPUT = z.object({}).strict();
 
-const jsonText = (data) => ({ type: 'text', text: JSON.stringify(data, null, 2) });
+const jsonText = (data: unknown): TextContent => ({ type: 'text', text: JSON.stringify(data, null, 2) });
 
 /** 서비스 호출을 실행하고 공통 오류를 MCP tool 오류 결과로 바꾼다. */
-async function toolResult(run) {
+async function toolResult(run: () => Promise<{ data: unknown; extra?: TextContent[] }>): Promise<CallToolResult> {
   try {
     const { data, extra = [] } = await run();
     return { content: [jsonText(data), ...extra] };
@@ -29,11 +31,11 @@ async function toolResult(run) {
   }
 }
 
-const mimeTypeFor = (docPath) => (docPath.endsWith('.md') ? 'text/markdown' : 'text/plain');
+const mimeTypeFor = (docPath: string) => (docPath.endsWith('.md') ? 'text/markdown' : 'text/plain');
 
-export function createMcpServer(service) {
+export function createMcpServer(service: WorkbenchService): McpServer {
   const { config } = service;
-  const server = new McpServer({ name: mcpServerName(config.name), title: config.title, version: pkg.version }, { instructions: INSTRUCTIONS });
+  const server = new McpServer({ name: mcpServerName(config.name), title: config.title, version: PACKAGE.version }, { instructions: INSTRUCTIONS });
 
   server.registerTool(
     'list_components',
@@ -59,7 +61,7 @@ export function createMcpServer(service) {
         const { documents, ...rest } = await service.getComponent(input);
         return {
           data: { ...rest, documents: documents.map(({ text, ...meta }) => meta) },
-          extra: documents.map((doc) => ({ type: 'text', text: `# ${doc.path} (sha256 ${doc.sha256})\n\n${doc.text}` })),
+          extra: documents.map((doc): TextContent => ({ type: 'text', text: `# ${doc.path} (sha256 ${doc.sha256})\n\n${doc.text}` })),
         };
       }),
   );

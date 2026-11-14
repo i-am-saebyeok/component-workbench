@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { test } from 'node:test';
-import { startHttpServer } from '../src/http.js';
+import { startHttpServer } from '../dist/src/http.js';
 import { makeService, readJson, serviceAt } from './helpers.js';
 
 async function serve(t, fixture = 'service-b') {
@@ -60,7 +60,7 @@ test('page CSP allows only its own scripts, the import-map hash and same-origin 
 
 test('only whitelisted tool files are served; source, package and service data paths are 404', async (t) => {
   const { port } = await serve(t);
-  for (const target of ['/../package.json', '/src/service.js', '/package.json', '/web/app.js', '/node_modules/three/package.json', '/workbench/catalog.json', '/component-workbench.config.json', '/vendor/three/../../package.json']) {
+  for (const target of ['/../package.json', '/src/service.js', '/src/service.ts', '/dist/src/service.js', '/package.json', '/web/app.js', '/web/app.ts', '/dist/web/app.js', '/node_modules/three/package.json', '/workbench/catalog.json', '/component-workbench.config.json', '/vendor/three/../../package.json']) {
     assert.equal((await request(port, { path: target })).status, 404, target);
   }
 });

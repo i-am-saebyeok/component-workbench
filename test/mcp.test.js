@@ -5,7 +5,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
-import { startHttpServer } from '../src/http.js';
+import { startHttpServer } from '../dist/src/http.js';
 import { CLI, makeService, serviceAt } from './helpers.js';
 
 const TOOLS = ['export_selection_recipe', 'get_component', 'get_selection', 'list_components', 'select_component', 'validate_component'];

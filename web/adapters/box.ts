@@ -5,33 +5,37 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
+import type { Material } from '../api.js';
+
+type Dimensions = [number, number, number];
+export type BoxPreview = ReturnType<typeof createBoxPreview>;
 
 /** material이 없는 variant·컴포넌트의 표시 전용 중립 재질. */
-export const NEUTRAL_MATERIAL = { base_color_srgb_hex: '#b9bdc2', roughness: 0.8, metallic: 0 };
+export const NEUTRAL_MATERIAL: Material = { base_color_srgb_hex: '#b9bdc2', roughness: 0.8, metallic: 0 };
 const AXIS_COLORS = { x: '#b4483c', y: '#3f7d4e', z: '#3b5f9a' };
 const VIEW_DIRECTION = new THREE.Vector3(1, -1.2, 0.9).normalize();
 
 /** 1·2·5×10^k 중 length를 약 세 칸으로 나누는 격자 간격. */
-function niceStep(length) {
+function niceStep(length: number): number {
   const raw = length / 3;
   const power = 10 ** Math.floor(Math.log10(raw));
   const n = raw / power;
   return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * power;
 }
 
-const meters = (value) => `${Number(value.toPrecision(6))} m`;
+const meters = (value: number) => `${Number(value.toPrecision(6))} m`;
 
-function label(text, className) {
+function label(text: string, className: string): CSS2DObject {
   const element = document.createElement('div');
   element.className = className;
   element.textContent = text;
   return new CSS2DObject(element);
 }
 
-const lineMaterial = (color, opacity = 1) => new THREE.LineBasicMaterial({ color, transparent: opacity < 1, opacity });
+const lineMaterial = (color: THREE.ColorRepresentation, opacity = 1) => new THREE.LineBasicMaterial({ color, transparent: opacity < 1, opacity });
 
 /** 한 모서리를 따라 바깥으로 띄운 치수선(양 끝 눈금, 가운데 라벨). */
-function dimension(from, to, tickDirection, tickLength, text) {
+function dimension(from: THREE.Vector3, to: THREE.Vector3, tickDirection: THREE.Vector3, tickLength: number, text: string): THREE.Group {
   const group = new THREE.Group();
   const tick = tickDirection.clone().multiplyScalar(tickLength);
   const points = [from, to, from.clone().sub(tick), from.clone().add(tick), to.clone().sub(tick), to.clone().add(tick)];
@@ -42,7 +46,7 @@ function dimension(from, to, tickDirection, tickLength, text) {
   return group;
 }
 
-export function createBoxPreview(container) {
+export function createBoxPreview(container: HTMLElement) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor('#ebe9e4');
@@ -72,23 +76,26 @@ export function createBoxPreview(container) {
   controls.maxPolarAngle = Math.PI / 2 - 0.04;
 
   const material = new THREE.MeshStandardMaterial();
-  let content = null; // 현재 치수의 body·edges·grid·치수선·축 표시
-  let body = null;
-  let shownDimensions = null;
-  let current = null;
+  let content: THREE.Group | null = null; // 현재 치수의 body·edges·grid·치수선·축 표시
+  let body: THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial> | null = null;
+  let shownDimensions: string | null = null;
+  let current: { componentId: string; variantId: string | null } | null = null;
   const view = { center: new THREE.Vector3(), distance: 10, halfWidth: 1, halfHeight: 1 };
 
   function disposeContent() {
     if (!content) return;
     scene.remove(content);
     content.traverse((child) => {
-      child.geometry?.dispose();
-      if (child.material && child.material !== material) child.material.dispose();
-      if (child.element) child.element.remove();
+      // geometry를 가진 것은 Mesh(본체·화살표 머리)와 Line(모서리·치수선·격자·화살표 줄기)이다.
+      if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+        child.geometry.dispose();
+        for (const used of [child.material].flat()) if (used !== material) used.dispose();
+      }
+      if (child instanceof CSS2DObject) child.element.remove();
     });
   }
 
-  function build([dx, dy, dz]) {
+  function build([dx, dy, dz]: Dimensions) {
     disposeContent();
     content = new THREE.Group();
     const span = Math.max(dx, dy, dz);
@@ -115,7 +122,7 @@ export function createBoxPreview(container) {
       ['x', new THREE.Vector3(1, 0, 0)],
       ['y', new THREE.Vector3(0, 1, 0)],
       ['z', new THREE.Vector3(0, 0, 1)],
-    ]) {
+    ] as const) {
       content.add(new THREE.ArrowHelper(direction, origin, step, AXIS_COLORS[axis], step * 0.22, step * 0.12));
       const tag = label(`+${axis.toUpperCase()}`, 'axis-label');
       tag.element.style.color = AXIS_COLORS[axis];
@@ -186,13 +193,15 @@ export function createBoxPreview(container) {
       renderer.render(scene, camera);
       labels.render(scene, camera);
       if (moving) requestRender();
-      if (current) publishRenderedState();
+      publishRenderedState();
     });
   }
 
-  /** 실제로 그린 본체 크기·재질을 노출한다(검사·QA용). */
+  /** 실제로 그린 본체 크기·재질을 노출한다(검사·QA용). 아직 그린 항목이 없으면 하지 않는다. */
   function publishRenderedState() {
-    const size = body.geometry.boundingBox.getSize(new THREE.Vector3());
+    const bounds = body?.geometry.boundingBox;
+    if (!current || !bounds) return;
+    const size = bounds.getSize(new THREE.Vector3());
     Object.assign(container.dataset, {
       rendered: 'true',
       renderedComponent: current.componentId,
@@ -204,7 +213,7 @@ export function createBoxPreview(container) {
     });
   }
 
-  function show({ componentId, variantId, dimensions, material: definition }) {
+  function show({ componentId, variantId, dimensions, material: definition }: { componentId: string; variantId: string | null; dimensions: Dimensions; material: Material | undefined }) {
     const key = dimensions.join(',');
     if (shownDimensions !== key) {
       build(dimensions);

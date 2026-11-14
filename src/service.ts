@@ -3,11 +3,15 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { PATH_STATE_KO, absolutePath, inspectServicePath } from './config.js';
+import type { LoadedConfig } from './config.js';
 import { WorkbenchError } from './errors.js';
 import { scenarioIds } from './gherkin.js';
 import { readSelection, withSelectionLock, writeSelectionAtomic } from './selection-store.js';
+import type { StoredSelection } from './selection-store.js';
 import { ComponentSchema, Id, SHA256_PATTERN, z, zodProblems } from './schemas.js';
+import type { Catalog, Component, Preview, Variant } from './schemas.js';
 import { HASH_METHOD, checkCatalog, loadSource } from './source.js';
+import type { SourceBundle, SourceDocument } from './source.js';
 
 export const DOC_URI_PREFIX = 'workbench://docs/';
 
@@ -38,7 +42,14 @@ export const SelectInput = z
   })
   .strict();
 
-function parse(schema, input) {
+/** 선택할 수 없는 이유 또는 저장 선택과 현재 원본의 차이. */
+type Reason = { code: 'unknown_component' | 'variant_required' | 'unknown_variant' | 'variant_not_available' | 'source_changed'; message_ko: string };
+
+/** 웹·MCP가 보는 문서 항목. `path`는 docs_root 기준이다. */
+export type DocumentEntry = { path: string; uri: string; sha256: string; scenario_ids: string[] };
+export type DocumentText = DocumentEntry & { text: string };
+
+function parse<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
   const result = schema.safeParse(input ?? {});
   if (!result.success) {
     throw new WorkbenchError('invalid_request', '요청 형식이 계약과 다르다. 정의되지 않은 필드나 잘못된 값은 받지 않는다.', {
@@ -48,13 +59,13 @@ function parse(schema, input) {
   return result.data;
 }
 
-const effectivePreview = (component, variant) => variant?.preview ?? component.preview ?? null;
+const effectivePreview = (component: Component, variant: Variant | null | undefined): Preview | null => variant?.preview ?? component.preview ?? null;
 
 /** 컴포넌트·variant 조합이 선택 가능한지 검사한다. variant가 없는 컴포넌트의 variant는 null이다. */
-function checkPair(catalog, componentId, variantId) {
-  const reasons = [];
+function checkPair(catalog: Catalog, componentId: string, variantId: string | null | undefined) {
+  const reasons: Reason[] = [];
   const component = catalog.components.find((item) => item.id === componentId) ?? null;
-  let variant = null;
+  let variant: Variant | null = null;
   if (!component) {
     const known = catalog.components.map((item) => item.id);
     reasons.push({
@@ -75,24 +86,28 @@ function checkPair(catalog, componentId, variantId) {
   return { component, variant, reasons };
 }
 
-export function createWorkbenchService(config, { lockWaitMs } = {}) {
+const documentEntry = (doc: SourceDocument): DocumentEntry => ({ path: doc.path, uri: DOC_URI_PREFIX + doc.path, sha256: doc.sha256, scenario_ids: doc.scenario_ids });
+const documentText = (doc: SourceDocument): DocumentText => ({ ...documentEntry(doc), text: doc.text });
+
+/** 컴포넌트가 연결한 문서(bdd 순서). loadSource가 모든 참조 문서를 읽었는지 이미 검사했다. */
+function componentDocuments(bundle: SourceBundle, component: Component): SourceDocument[] {
+  return component.bdd.map((reference) => {
+    const doc = bundle.documents.find((item) => item.path === reference);
+    if (!doc) throw new Error(`${reference}가 검증한 원본 묶음에 없다.`);
+    return doc;
+  });
+}
+
+export function createWorkbenchService(config: LoadedConfig, { lockWaitMs }: { lockWaitMs?: number } = {}) {
   const selectionFile = absolutePath(config, config.selection);
   const workbench = { name: config.name, title: config.title, catalog: config.catalog };
 
-  const identity = (bundle) => ({
+  const identity = (bundle: SourceBundle) => ({
     catalog_path: config.catalog,
     catalog_revision: bundle.catalog.revision,
     catalog_sha256: bundle.catalogSha256,
     source_sha256: bundle.sourceSha256,
   });
-
-  const documentEntry = (doc, { withText }) => {
-    const entry = { path: doc.path, uri: DOC_URI_PREFIX + doc.path, sha256: doc.sha256, scenario_ids: doc.scenario_ids };
-    return withText ? { ...entry, text: doc.text } : entry;
-  };
-
-  const componentDocuments = (bundle, component, options) =>
-    component.bdd.map((reference) => documentEntry(bundle.documents.find((doc) => doc.path === reference), options));
 
   async function checkSelectionPath() {
     const info = await inspectServicePath(config, config.selection);
@@ -105,9 +120,9 @@ export function createWorkbenchService(config, { lockWaitMs } = {}) {
     return readSelection(selectionFile, config.selection);
   }
 
-  function describeSelection(bundle, stored) {
+  function describeSelection(bundle: SourceBundle, stored: StoredSelection) {
     const base = { path: config.selection, source: identity(bundle) };
-    if (!stored.selection) return { ...base, status: 'none', revision: 0, sha256: null, selection: null, component: null, variant: null, issues: [] };
+    if (!stored.selection) return { ...base, status: 'none' as const, revision: 0, sha256: null, selection: null, component: null, variant: null, issues: [] };
     const { selection } = stored;
     const { component, variant, reasons } = checkPair(bundle.catalog, selection.component_id, selection.variant_id);
     const issues = [...reasons];
@@ -117,26 +132,34 @@ export function createWorkbenchService(config, { lockWaitMs } = {}) {
         message_ko: `선택은 원본 ${selection.source_sha256.slice(0, 12)}…(catalog revision ${selection.catalog_revision})에서 저장됐고 현재 원본은 ${bundle.sourceSha256.slice(0, 12)}…(revision ${bundle.catalog.revision})이다. 다시 선택해야 현재 정의에 고정된다.`,
       });
     }
-    const status = reasons.length > 0 ? 'unresolvable' : issues.length > 0 ? 'stale_source' : 'current';
+    const status: 'unresolvable' | 'stale_source' | 'current' = reasons.length > 0 ? 'unresolvable' : issues.length > 0 ? 'stale_source' : 'current';
     return { ...base, status, revision: selection.revision, sha256: stored.sha256, selection, component, variant, issues };
+  }
+
+  /** 정의·문서·fingerprint·선택 해석을 한 번 읽은 원본에서 만든다. */
+  async function catalogView<D>(toDocument: (doc: SourceDocument) => D) {
+    const bundle = await loadSource(config);
+    return {
+      workbench,
+      source: identity(bundle),
+      components: bundle.catalog.components,
+      documents: bundle.documents.map(toDocument),
+      selection: describeSelection(bundle, await storedSelection()),
+    };
+  }
+
+  /** withText는 웹 문서 패널용이다(문서 원문 포함). */
+  function listComponents(options?: { withText?: false }): ReturnType<typeof catalogView<DocumentEntry>>;
+  function listComponents(options: { withText: true }): ReturnType<typeof catalogView<DocumentText>>;
+  function listComponents({ withText = false }: { withText?: boolean } = {}) {
+    return withText ? catalogView(documentText) : catalogView(documentEntry);
   }
 
   return {
     config,
+    listComponents,
 
-    /** 정의·문서·fingerprint·선택 해석을 한 번 읽은 원본에서 만든다. withText는 웹 문서 패널용이다. */
-    async listComponents({ withText = false } = {}) {
-      const bundle = await loadSource(config);
-      return {
-        workbench,
-        source: identity(bundle),
-        components: bundle.catalog.components,
-        documents: bundle.documents.map((doc) => documentEntry(doc, { withText })),
-        selection: describeSelection(bundle, await storedSelection()),
-      };
-    },
-
-    async getComponent(input) {
+    async getComponent(input: unknown) {
       const request = parse(ComponentQuery, input);
       const bundle = await loadSource(config);
       const component = bundle.catalog.components.find((item) => item.id === request.component_id);
@@ -155,34 +178,34 @@ export function createWorkbenchService(config, { lockWaitMs } = {}) {
         component,
         variants,
         preview: effectivePreview(component, request.variant_id === undefined ? null : variants[0]),
-        documents: componentDocuments(bundle, component, { withText: true }),
+        documents: componentDocuments(bundle, component).map(documentText),
         selection: describeSelection(bundle, await storedSelection()),
       };
     },
 
-    async validateComponent(input) {
-      const request = parse(ValidateInput, input);
-      const byDefinition = request.definition !== undefined;
-      if (byDefinition === (request.component_id !== undefined) || (byDefinition && request.variant_id !== undefined)) {
+    async validateComponent(input: unknown) {
+      const { component_id: componentId, variant_id: variantId, definition } = parse(ValidateInput, input);
+      if ((definition !== undefined) === (componentId !== undefined) || (definition !== undefined && variantId !== undefined)) {
         throw new WorkbenchError('invalid_request', 'component_id(+variant_id) 또는 definition 중 하나만 준다.');
       }
       const bundle = await loadSource(config);
       const base = { source: identity(bundle), writes: false, scenarios_executed: false };
-      if (!byDefinition) {
-        const { component, variant, reasons } = checkPair(bundle.catalog, request.component_id, request.variant_id);
+      if (componentId !== undefined) {
+        const { component, variant, reasons } = checkPair(bundle.catalog, componentId, variantId);
         return {
           ...base,
           valid: reasons.length === 0,
-          component_id: request.component_id,
+          component_id: componentId,
           variant_id: variant?.id ?? null,
           preview: component && reasons.length === 0 ? effectivePreview(component, variant) : null,
           reasons,
-          documents: component ? componentDocuments(bundle, component, { withText: false }) : [],
+          documents: component ? componentDocuments(bundle, component).map(documentEntry) : [],
         };
       }
-      const parsed = ComponentSchema.safeParse(request.definition);
+      // 위 검사로 여기서는 definition만 주어졌다.
+      const parsed = ComponentSchema.safeParse(definition);
       if (!parsed.success) {
-        return { ...base, valid: false, component_id: request.definition.id ?? null, reasons: zodProblems(parsed.error, 'definition'), documents: [] };
+        return { ...base, valid: false, component_id: definition?.id ?? null, reasons: zodProblems(parsed.error, 'definition'), documents: [] };
       }
       const candidate = parsed.data;
       const components = bundle.catalog.components.some((item) => item.id === candidate.id)
@@ -207,7 +230,7 @@ export function createWorkbenchService(config, { lockWaitMs } = {}) {
       return describeSelection(bundle, await storedSelection());
     },
 
-    async selectComponent(input) {
+    async selectComponent(input: unknown) {
       const request = parse(SelectInput, input);
       const variantId = request.variant_id ?? null;
       await checkSelectionPath();
@@ -215,7 +238,7 @@ export function createWorkbenchService(config, { lockWaitMs } = {}) {
       if (directory !== '.') {
         await fs.mkdir(absolutePath(config, directory), { recursive: true });
         const info = await inspectServicePath(config, directory);
-        if (info.state !== 'directory') throw new WorkbenchError('selection_unreadable', `${directory}: ${PATH_STATE_KO[info.state] ?? '디렉토리가 아니다'}.`);
+        if (info.state !== 'directory') throw new WorkbenchError('selection_unreadable', `${directory}: ${info.state === 'file' ? '디렉토리가 아니다' : PATH_STATE_KO[info.state]}.`);
       }
       return withSelectionLock(
         selectionFile,
@@ -270,18 +293,20 @@ export function createWorkbenchService(config, { lockWaitMs } = {}) {
       const bundle = await loadSource(config);
       const current = describeSelection(bundle, await storedSelection());
       if (current.status === 'none') throw new WorkbenchError('selection_missing', '저장된 선택이 없다. select_component로 먼저 선택한다.');
-      if (current.status !== 'current') throw new WorkbenchError('selection_stale', '저장된 선택이 현재 원본과 맞지 않아 제작 입력으로 쓸 수 없다.', { issues: current.issues });
+      // current 상태는 선택한 컴포넌트가 정의에 있다는 뜻이다.
+      const { component, variant } = current;
+      if (current.status !== 'current' || !component) throw new WorkbenchError('selection_stale', '저장된 선택이 현재 원본과 맞지 않아 제작 입력으로 쓸 수 없다.', { issues: current.issues });
       return {
         schema_version: 1,
         kind: 'component-workbench/selection-recipe',
         workbench: { name: config.name, title: config.title },
         source: { ...identity(bundle), files: bundle.files, hash_method: HASH_METHOD },
         selection: { path: config.selection, revision: current.revision, sha256: current.sha256 },
-        component: current.component,
-        variant: current.variant,
-        preview: effectivePreview(current.component, current.variant),
+        component,
+        variant,
+        preview: effectivePreview(component, variant),
         // recipe의 모든 경로는 서비스 루트 기준이다(웹·MCP 문서 경로는 docs_root 기준).
-        documents: componentDocuments(bundle, current.component, { withText: false }).map(({ path: docPath, sha256, scenario_ids }) => ({
+        documents: componentDocuments(bundle, component).map(({ path: docPath, sha256, scenario_ids }) => ({
           path: `${config.docs_root}/${docPath}`,
           sha256,
           scenario_ids,
@@ -290,11 +315,13 @@ export function createWorkbenchService(config, { lockWaitMs } = {}) {
     },
 
     /** 현재 원본 묶음에 속한 문서만 읽는다(docs_root 기준 경로). */
-    async readDocument(docPath) {
+    async readDocument(docPath: string) {
       const bundle = await loadSource(config);
       const doc = bundle.documents.find((item) => item.path === docPath);
       if (!doc) throw new WorkbenchError('not_found', `문서 ${docPath}는 원본 묶음에 없다.`, { documents: bundle.documents.map((item) => item.path) });
-      return documentEntry(doc, { withText: true });
+      return documentText(doc);
     },
   };
 }
+
+export type WorkbenchService = ReturnType<typeof createWorkbenchService>;

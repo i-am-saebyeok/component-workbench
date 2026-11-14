@@ -113,10 +113,20 @@ export const SelectionSchema = z
   })
   .strict();
 
+export type Config = z.infer<typeof ConfigSchema>;
+export type Catalog = z.infer<typeof CatalogSchema>;
+export type Component = z.infer<typeof ComponentSchema>;
+export type Variant = z.infer<typeof Variant>;
+export type Preview = z.infer<typeof Preview>;
+export type Selection = z.infer<typeof SelectionSchema>;
+
+/** JSON 경로(`at`)와 한국어 설명으로 된 검사 문제. */
+export type Problem = { at: string; message_ko: string };
+
 /** zod 문제를 `at`(JSON 경로)·`message_ko` 목록으로 바꾼다. */
-export function zodProblems(error, prefix = '') {
+export function zodProblems(error: z.ZodError, prefix = ''): Problem[] {
   return error.issues.map((issue) => ({
-    at: issue.path.reduce((at, key) => (typeof key === 'number' ? `${at}[${key}]` : at ? `${at}.${String(key)}` : String(key)), prefix),
+    at: issue.path.reduce<string>((at, key) => (typeof key === 'number' ? `${at}[${key}]` : at ? `${at}.${String(key)}` : String(key)), prefix),
     message_ko: issue.message,
   }));
 }
@@ -124,8 +134,8 @@ export function zodProblems(error, prefix = '') {
 export { z };
 
 /** 패키지 `schema/`에 싣는 JSON Schema(편집기 보조용). 이 zod 정의에서 생성한다. */
-export function jsonSchemas() {
-  const render = (schema, title) => `${JSON.stringify({ title, ...z.toJSONSchema(schema, { io: 'input' }) }, null, 2)}\n`;
+export function jsonSchemas(): Record<string, string> {
+  const render = (schema: z.ZodType, title: string) => `${JSON.stringify({ title, ...z.toJSONSchema(schema, { io: 'input' }) }, null, 2)}\n`;
   return {
     'schema/config.schema.json': render(ConfigSchema, 'component-workbench.config.json'),
     'schema/catalog.schema.json': render(CatalogSchema, 'component-workbench catalog'),

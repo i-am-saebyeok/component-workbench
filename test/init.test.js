@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'node:test';
 import { parse as parseToml } from 'smol-toml';
-import { INSTALL_COMMAND, InitError, runInit } from '../src/init.js';
+import { INSTALL_COMMAND, InitError, runInit } from '../dist/src/init.js';
 import { REPO_ROOT, readJson, snapshot, tempDir } from './helpers.js';
 
 const PKG = '@i-am-saebyeok/component-workbench';
@@ -211,7 +211,7 @@ test('init requires the tool installed in the service; otherwise it prints the e
   const before = await snapshot(missing);
   const error = await initFails(missing);
   assert.ok(error.message.includes(INSTALL_COMMAND) && error.message.includes('npx component-workbench init'), error.message);
-  assert.equal(INSTALL_COMMAND, 'npm install -D git+https://github.com/i-am-saebyeok/component-workbench.git#v0.1.1');
+  assert.equal(INSTALL_COMMAND, 'npm install -D git+https://github.com/i-am-saebyeok/component-workbench.git#v0.1.2');
   assert.deepEqual(await snapshot(missing), before);
 
   // 서비스에 다른 사본이 설치되어 있으면 지금 실행한 CLI로 init하지 않는다.

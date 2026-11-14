@@ -6,17 +6,20 @@ export const TAG_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9_.:-]*$/;
 const OUTLINE = new Set(['Scenario Outline', 'Scenario Template']);
 const SCENARIO = new Set(['Scenario', 'Example', ...OUTLINE]);
 
-/**
- * @returns {{scenarios: {line:number, keyword:string, title:string, tags:string[]}[], problems: {line:number, message_ko:string}[]}}
- */
-export function parseFeature(text) {
-  const problems = [];
-  const scenarios = [];
-  const problem = (line, message_ko) => problems.push({ line, message_ko });
+export type Scenario = { line: number; keyword: string; title: string; tags: string[] };
+export type FeatureProblem = { line: number; message_ko: string };
+
+type ScenarioState = Scenario & { steps: number; examples: boolean };
+type Block = { kind: string; content: boolean; scenario?: ScenarioState | undefined };
+
+export function parseFeature(text: string): { scenarios: Scenario[]; problems: FeatureProblem[] } {
+  const problems: FeatureProblem[] = [];
+  const scenarios: ScenarioState[] = [];
+  const problem = (line: number, message_ko: string) => problems.push({ line, message_ko });
   let feature = false;
-  let pendingTags = [];
-  let block = null; // { kind, content, scenario? }
-  let docstring = null;
+  let pendingTags: string[] = [];
+  let block: Block | null = null;
+  let docstring: string | null = null;
   const lines = text.split(/\r?\n/);
 
   lines.forEach((line, index) => {
@@ -43,7 +46,8 @@ export function parseFeature(text) {
 
     const keyword = KEYWORD.exec(trimmed);
     if (keyword) {
-      const [, name, title] = keyword;
+      // 두 group은 정규식에서 항상 참여한다.
+      const [, name = '', title = ''] = keyword;
       if (name === 'Feature') {
         if (feature) problem(n, 'Feature:는 파일에 한 번만 쓴다.');
         feature = true;
@@ -51,7 +55,7 @@ export function parseFeature(text) {
         problem(n, `${name}: 앞에 Feature:가 없다.`);
       }
       if (SCENARIO.has(name)) {
-        const scenario = { line: n, keyword: name, title: title.trim(), tags: pendingTags, steps: 0, examples: false };
+        const scenario: ScenarioState = { line: n, keyword: name, title: title.trim(), tags: pendingTags, steps: 0, examples: false };
         scenarios.push(scenario);
         block = { kind: 'scenario', content: false, scenario };
       } else if (name === 'Examples' || name === 'Scenarios') {
@@ -108,6 +112,6 @@ export function parseFeature(text) {
   };
 }
 
-export function scenarioIds(scenarios) {
+export function scenarioIds(scenarios: Scenario[]): string[] {
   return [...new Set(scenarios.flatMap((scenario) => scenario.tags))];
 }

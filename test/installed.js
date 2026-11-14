@@ -15,11 +15,38 @@ export async function packTarball(destination) {
   return { tarball: path.join(destination, info.filename), files: info.files.map((file) => file.path).sort(), info };
 }
 
-/** 빈 서비스 디렉토리에 package.json을 만들고 tarball을 devDependency로 설치한다. */
-export async function installService(dir, tarball, packageJson = {}) {
+/**
+ * 빈 서비스 디렉토리에 package.json을 만들고 패키지 source(tarball 경로, Git URL 등)를 설치한다.
+ * 기본은 devDependency다. runtime이면 dependency로 저장하고 서비스의 devDependencies를 설치하지 않는다(--omit=dev).
+ */
+export async function installService(dir, source, packageJson = {}, { runtime = false, env = process.env } = {}) {
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, 'package.json'), `${JSON.stringify({ name: path.basename(dir).replace(/\s+/g, '-'), private: true, ...packageJson }, null, 2)}\n`);
-  await run('npm', ['install', '--no-audit', '--no-fund', '--prefer-offline', '--save-dev', tarball], { cwd: dir, maxBuffer: 16 * 1024 * 1024 });
+  const save = runtime ? ['--save-prod', '--omit=dev'] : ['--save-dev'];
+  await run('npm', ['install', '--no-audit', '--no-fund', '--prefer-offline', ...save, source], { cwd: dir, env, maxBuffer: 16 * 1024 * 1024 });
+}
+
+/** 서비스 node_modules 전체(중첩 포함)에서 TypeScript 컴파일러 패키지(typescript, @typescript/*)를 찾는다. */
+export async function compilerPackages(service) {
+  const found = [];
+  async function walk(modules) {
+    let entries;
+    try {
+      entries = await fs.readdir(modules, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+      const names = entry.name.startsWith('@') ? (await fs.readdir(path.join(modules, entry.name))).map((child) => `${entry.name}/${child}`) : [entry.name];
+      for (const name of names) {
+        if (name === 'typescript' || name.startsWith('@typescript/')) found.push(path.relative(service, path.join(modules, name)));
+        await walk(path.join(modules, name, 'node_modules'));
+      }
+    }
+  }
+  await walk(path.join(service, 'node_modules'));
+  return found.sort();
 }
 
 /** 설치된 CLI를 서비스(또는 하위 디렉토리)에서 npx --no-install로 실행한다. 실패해도 결과를 돌려준다. */

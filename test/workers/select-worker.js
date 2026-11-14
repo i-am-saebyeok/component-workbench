@@ -2,8 +2,8 @@
 // 사용법: node select-worker.js <serviceRoot> <mode> <startAtMs> <index> [rounds]
 //   once — expected revision 0으로 한 번 저장(경쟁자 중 하나만 이긴다)
 //   loop — rounds번 저장, 충돌하면 다시 읽는다(정상 클라이언트의 동작)
-import { loadConfig } from '../../src/config.js';
-import { createWorkbenchService } from '../../src/service.js';
+import { loadConfig } from '../../dist/src/config.js';
+import { createWorkbenchService } from '../../dist/src/service.js';
 
 const [root, mode, startAt, index, rounds = '0'] = process.argv.slice(2);
 const service = createWorkbenchService(await loadConfig({ cwd: root }), { lockWaitMs: 20_000 });

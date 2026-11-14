@@ -20,7 +20,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      # npm ci의 prepare가 dist를 빌드한다.
       - run: npm ci
-      # npm pack tarball을 임시 서비스 A/B에 설치하는 검사를 포함한다. 브라우저 QA(npm run qa:browser)는 로컬 Chromium이 필요해 CI에서 돌리지 않는다.
+      - run: npm run typecheck
+      # pretest가 다시 빌드한다. npm pack tarball을 임시 서비스에 설치하는 검사를 포함한다. 브라우저 QA(npm run qa:browser)는 로컬 Chromium이 필요해 CI에서 돌리지 않는다.
       - run: npm test
       - run: npm run openspec:validate

@@ -1,6 +1,6 @@
 {
   "name": "@i-am-saebyeok/component-workbench",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -10,19 +10,26 @@
     "url": "git+https://github.com/i-am-saebyeok/component-workbench.git"
   },
   "bin": {
-    "component-workbench": "src/cli.js"
+    "component-workbench": "dist/src/cli.js"
   },
   "files": [
-    "src/",
-    "web/",
+    "dist/src/",
+    "dist/web/",
+    "web/index.html",
+    "web/styles.css",
     "templates/",
     "schema/",
     "docs/verification.md"
   ],
   "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && npm run typecheck && tsc -p tsconfig.json && tsc -p web/tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",
+    "prepare": "npm run build",
+    "pretest": "npm run build",
     "test": "node --test --test-concurrency=1 test/*.test.js",
     "qa:browser": "node test/browser/qa.js",
-    "schema": "node scripts/write-schema.js",
+    "verify:install": "node test/verify-install.js",
+    "schema": "npm run build && node dist/scripts/write-schema.js",
     "openspec:validate": "openspec validate --all --strict --no-interactive"
   },
   "dependencies": {
@@ -35,7 +42,10 @@
   "devDependencies": {
     "@fission-ai/openspec": "2.0.0",
     "@modelcontextprotocol/client": "2.4.0",
-    "playwright-core": "1.62.1"
+    "@types/node": "22.12.0",
+    "@types/three": "0.187.0",
+    "playwright-core": "1.62.1",
+    "typescript": "7.1.0-beta"
   },
   "engines": {
     "node": ">=22.12.0"

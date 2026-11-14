@@ -9,12 +9,14 @@
 Node.js 22.12.0 이상이 필요합니다. 소비 서비스 디렉토리에서 배포 태그를 로컬 개발 의존성으로 설치합니다. `package.json`이 없는 서비스는 먼저 `npm init -y`를 실행합니다.
 
 ```sh
-npm install -D git+https://github.com/i-am-saebyeok/component-workbench.git#v0.1.1
+npm install -D git+https://github.com/i-am-saebyeok/component-workbench.git#v0.1.2
 npx component-workbench init
 npm run workbench
 ```
 
 GitHub 공개 저장소의 태그로 배포합니다. npm registry에는 publish하지 않으며 `package.json`의 `private: true`는 registry 발행 방지용입니다. 저장소 공개 여부와는 별개입니다. 패키지를 먼저 설치해야 생성한 npm scripts와 MCP가 해당 서비스의 로컬 도구를 실행할 수 있습니다.
+
+Git 설치의 `prepare`가 도구를 빌드하고, 설치된 CLI·브라우저는 `dist`의 JavaScript를 실행합니다. 소비 서비스 runtime에는 TypeScript compiler가 필요하지 않습니다.
 
 ## init 결과와 기존 파일 보존
 
@@ -81,3 +83,17 @@ BDD 원문은 MCP resources로도 읽습니다. 웹과 MCP는 같은 서비스 �
 배포 검사는 npm pack 산출물을 저장소 밖 새 A/B 서비스에 설치하여 수행합니다. 둘 다 빈 init에서 시작하고 테스트에서만 서로 다른 box·HTML 정의를 추가하여 UI·MCP·BDD·선택이 독립적인지 확인합니다. init 반복·기존 scripts/MCP 보존·충돌 무변경·빈 UI·좁은 화면·원본/revision 충돌도 확인합니다. fixture를 기본 컴포넌트로 배포하지 않습니다.
 
 pack 설치와 GitHub 태그 설치의 실제 수행 결과는 [검증 기록](docs/verification.md)을 확인합니다.
+
+## 도구 개발
+
+생산 소스 `src`·`web`·제품 스크립트는 TypeScript이며 compiler는 **7.1.0-beta**로 고정합니다. Node와 브라우저를 각각 strict 검사하고 빌드 결과는 `dist`에 생성합니다.
+
+```sh
+npm ci
+npm run typecheck
+npm run build
+npm test
+```
+
+`npm test`는 현재 소스를 빌드한 뒤 검사합니다. 설치본 브라우저 검증은 `npm run qa:browser`로 실행합니다.
+개발 설치에서 lifecycle scripts를 건너뛰었다면 `npm run build`를 먼저 실행합니다.

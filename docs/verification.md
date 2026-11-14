@@ -1,5 +1,23 @@
 # 검증 기록
 
+## 0.1.2 TypeScript 7.1 Beta
+
+2026-11-14, compiler를 정확히 7.1.0-beta로 고정하고 src·web·제품 스크립트를 실제 strict 검사되는 TS로 전환했습니다. CLI와 브라우저는 compiled JS를 실행합니다. compiler와 타입 패키지는 도구 개발 의존성이며 소비 서비스 runtime에는 설치하지 않습니다.
+
+| 검사 | 실제 결과 |
+| --- | --- |
+| typecheck·build | Node/브라우저 오류 0, JS 16개 생성. strict·noUncheckedIndexedAccess·noEmitOnError 유지, 검사 우회 없음 |
+| 타입 오류 주입 | 임시 사본의 src/scripts/web 오류가 각각 typecheck·build·pack을 실패시키며 dist 미생성 |
+| Node 24.19.0 | 52/52 통과. 기존 48개와 빌드 3개·runtime 설치 1개 |
+| 깨끗한 Node 22.12.0 사본 | npm ci의 prepare 빌드·typecheck·52/52·브라우저 15/15 통과, lockfile 불변 |
+| 빌드 재현성 | Node 22/24와 작업 저장소의 dist 16개 파일 해시 일치 |
+| 설치본 브라우저 | 15/15 통과·화면 21장. 빈 상태·box/HTML·BDD·선택·오류 복구·390px 확인 |
+| 실제 npm pack | 27개 파일, version=0.1.2·bin=dist/src/cli.js. compiled JS·정적 자산·빈 템플릿·schema·MIT LICENSE 포함, TS 소스/테스트/compiler 제외 |
+| compiler 없는 소비 서비스 | tarball과 로컬 Git prepare를 --omit=dev로 설치해 8/8 통과. compiler 0개·빈 init·validate·웹·두 프로젝트 stdio/HTTP MCP·BDD·선택 유지 확인 |
+| schema | 생성 결과와 기존 schema가 바이트 단위로 동일 |
+
+정상 화면 구성과 서비스 소유 init/BDD/선택 계약을 유지했습니다. 타입 경계를 정리하면서 오류 알림 끝에 잘못 붙던 null 문자열을 제거했습니다. 공개 Git SHA/태그 설치와 원격 CI는 다음 배포 단계에서 확인합니다.
+
 ## 0.1.1 공개 배포 검증
 
 2026-11-14에 [GitHub 공식 MIT 템플릿](https://choosealicense.com/licenses/mit/)으로 LICENSE를 추가했습니다. 저작권 표기는 2026 i-am-saebyeok이며 package/lock 버전은 0.1.1, license는 MIT입니다. private=true는 npm registry 발행 방지용으로 유지합니다.

@@ -7,12 +7,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { CONFIG_FILE, defaultConfig, loadConfig, serializeConfig } from '../src/config.js';
-import { createWorkbenchService } from '../src/service.js';
+import { CONFIG_FILE, defaultConfig, loadConfig, serializeConfig } from '../dist/src/config.js';
+import { createWorkbenchService } from '../dist/src/service.js';
 
 export const run = promisify(execFile);
 export const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
-export const CLI = path.join(REPO_ROOT, 'src', 'cli.js');
+export const CLI = path.join(REPO_ROOT, 'dist', 'src', 'cli.js');
 export const FIXTURES = path.join(REPO_ROOT, 'test', 'fixtures');
 const TEMPLATES = path.join(REPO_ROOT, 'templates', 'workbench');
 

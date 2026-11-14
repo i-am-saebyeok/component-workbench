@@ -8,10 +8,11 @@ import { after, before, test } from 'node:test';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { parse as parseToml } from 'smol-toml';
-import { INSTALL_COMMAND } from '../src/init.js';
-import { jsonSchemas } from '../src/schemas.js';
+import { INSTALL_COMMAND } from '../dist/src/init.js';
+import { jsonSchemas } from '../dist/src/schemas.js';
 import { CLI, FIXTURES, run, snapshot } from './helpers.js';
-import { FORBIDDEN, PKG, assignPort, installService, npx, packTarball, startWorkbench, stopWorkbench, tempRoot } from './installed.js';
+import { FORBIDDEN, PKG, assignPort, compilerPackages, installService, npx, packTarball, startWorkbench, stopWorkbench, tempRoot } from './installed.js';
+import { verifyInstall } from './verify-install.js';
 
 let work;
 let packed;
@@ -67,32 +68,33 @@ async function textFiles(dir) {
   return out;
 }
 
-test('the tarball carries only the tool: runtime, web, templates, schema and docs; no tests, fixtures or other service data', async () => {
+test('the tarball carries only the compiled tool: runtime JS, web JS/HTML/CSS, templates, schema and docs; no TS sources, tests, fixtures or other service data', async () => {
   assert.deepEqual(packed.files, [
     'LICENSE',
     'README.md',
+    'dist/src/cli.js',
+    'dist/src/config.js',
+    'dist/src/errors.js',
+    'dist/src/gherkin.js',
+    'dist/src/http.js',
+    'dist/src/init.js',
+    'dist/src/mcp.js',
+    'dist/src/package.js',
+    'dist/src/schemas.js',
+    'dist/src/selection-store.js',
+    'dist/src/service.js',
+    'dist/src/source.js',
+    'dist/web/adapters/box.js',
+    'dist/web/adapters/html.js',
+    'dist/web/app.js',
     'docs/verification.md',
     'package.json',
     'schema/catalog.schema.json',
     'schema/config.schema.json',
-    'src/cli.js',
-    'src/config.js',
-    'src/errors.js',
-    'src/gherkin.js',
-    'src/http.js',
-    'src/init.js',
-    'src/mcp.js',
-    'src/schemas.js',
-    'src/selection-store.js',
-    'src/service.js',
-    'src/source.js',
     'templates/workbench/README.md',
     'templates/workbench/behaviors/README.md',
     'templates/workbench/catalog.json',
     'templates/workbench/previews/README.md',
-    'web/adapters/box.js',
-    'web/adapters/html.js',
-    'web/app.js',
     'web/index.html',
     'web/styles.css',
   ]);
@@ -105,9 +107,26 @@ test('the tarball carries only the tool: runtime, web, templates, schema and doc
     assert.ok(!FORBIDDEN.test(text), `${path.relative(extracted, file)}: ${FORBIDDEN.exec(text)?.[0]}`);
     assert.ok(!fixtureIds.test(text), `${path.relative(extracted, file)} mentions a test fixture`);
   }
-  for (const [file, text] of Object.entries(jsonSchemas())) assert.equal(await fs.readFile(path.join(extracted, 'package', file), 'utf8'), text, `${file} is generated from src/schemas.js`);
+  for (const [file, text] of Object.entries(jsonSchemas())) assert.equal(await fs.readFile(path.join(extracted, 'package', file), 'utf8'), text, `${file} is generated from src/schemas.ts`);
   const manifest = JSON.parse(await fs.readFile(path.join(extracted, 'package', 'package.json'), 'utf8'));
-  assert.deepEqual([manifest.private, manifest.bin['component-workbench']], [true, 'src/cli.js']);
+  assert.deepEqual([manifest.private, manifest.version, manifest.bin['component-workbench']], [true, '0.1.2', 'dist/src/cli.js']);
+  assert.deepEqual(Object.keys(manifest.dependencies).sort(), ['@modelcontextprotocol/node', '@modelcontextprotocol/server', 'smol-toml', 'three', 'zod']);
+  for (const [service, label] of [[A, 'A'], [B, 'B']]) assert.deepEqual(await compilerPackages(service), [], `service ${label} has no TypeScript compiler installed`);
+});
+
+test('a fresh service installing the tarball as a runtime dependency without its devDependencies runs init, validate, web and MCP without a compiler', async () => {
+  const report = await verifyInstall(packed.tarball);
+  assert.ok(report.passed, JSON.stringify(report, null, 2));
+  assert.deepEqual(report.checks.map((item) => item.id), [
+    'tool-is-runtime-dependency',
+    'installed-tool-is-compiled-js',
+    'no-compiler-in-consumer-tree',
+    'init-starts-empty',
+    'validate-empty',
+    'web-serves-compiled-ui-and-catalog',
+    'mcp-json-stdio-reads-bdd-and-selects',
+    'selection-persists-across-web-http-and-codex-stdio',
+  ]);
 });
 
 test('installed CLI initializes two fresh services with 0 components, preserves existing settings and repeats byte-stably', async () => {

@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { lockFileFor, withSelectionLock, writeSelectionAtomic } from '../src/selection-store.js';
+import { lockFileFor, withSelectionLock, writeSelectionAtomic } from '../dist/src/selection-store.js';
 import { makeService, readJson, rejectsWith, selectFresh, serviceAt, writeJson } from './helpers.js';
 
 const WORKER = fileURLToPath(new URL('./workers/select-worker.js', import.meta.url));
