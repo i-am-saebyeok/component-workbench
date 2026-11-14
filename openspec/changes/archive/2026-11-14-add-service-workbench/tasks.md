@@ -26,10 +26,10 @@
 ## 5. 배포와 독립 서비스 통합
 
 - [x] 5.1 [Claude Opus xhigh: 검사 코드 / Sol xhigh: 결과 검수] 같은 tarball을 새 A/B에 설치했다. 6개 package 검사에서 빈 init부터 서로 다른 box/HTML 정의·BDD·선택·MCP·recipe와 설치 파일의 독립성을 확인했다.
-- [ ] 5.2 [Sol xhigh] 실제 결과/화면과 README를 대조하고 Node 22.12.0/24.19.0 각 48개·브라우저 15개·strict/whitespace를 확인했다. 원격 SHA 설치는 통과했다. v0.1.0 태그 설치를 확인하고 hosted CI 미실행 사유와 함께 기록한다.
+- [x] 5.2 [Sol xhigh] 실제 결과/화면과 README를 대조했다. Node 22.12.0/24.19.0 각 48개·브라우저 15개·원격 SHA/v0.1.0 태그 설치·init/validate/웹·strict/whitespace 통과와 hosted CI의 계정 한도에 따른 미실행을 기록했다.
 
 ## Workflow follow-up
 
-- root가 실제 검수 후 v0.1.0 태그·GitHub private 전달을 진행한다. npm registry에는 publish하지 않는다.
+- 실제 검수 후 v0.1.0 태그를 GitHub private 저장소로 전달했다. npm registry에는 publish하지 않았다.
 - 서비스 컴포넌트/variant/BDD는 서비스가 소유하며 예제 fixture를 기본 초기화 데이터로 배포하지 않는다.
-- 모든 구현·검증이 끝난 뒤 검토·보관하고 기존 서비스 migration은 별도 요청 범위로 다룬다.
+- 11개 항목 검수 결과는 docs/verification.md에 기록했다. 기존 서비스 migration은 포함하지 않았다.

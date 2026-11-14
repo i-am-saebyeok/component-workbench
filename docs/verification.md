@@ -9,8 +9,8 @@
 | Node 22.12.0 전체 검사 | `npm exec --yes --package=node@22.12.0 -- node --test --test-concurrency=1 test/*.test.js`로 48개 통과, 실패·건너뜀 0개 |
 | `npm run qa:browser` | 15개 통과, 화면 21장 검수. Node 24.19.0·Chromium 151·SwiftShader |
 | `npm pack --dry-run --json` | 25개 파일. runtime·웹·schema·빈 템플릿·문서 포함, 테스트/fixture/캐시 제외 |
-| OpenSpec strict | 전체·변경 검증 통과 |
-| private Git 설치 | 원격 commit `8eaf3e3` 설치·init·validate 성공. 기본 0개이며 runtime·웹·schema·템플릿이 검증한 소스와 일치 |
+| OpenSpec strict | 11/11 완료·변경 보관, 최종 spec 1/1 통과 |
+| private Git 설치 | 원격 SHA와 `v0.1.0` 태그 설치·init·validate 성공. 태그 설치본에서 반복 init 무변경, 웹 HTTP 200·선택 없음/revision0 확인. runtime·웹·schema·템플릿이 검증한 소스와 일치 |
 
 같은 tarball을 저장소 밖 새 A/B 서비스에 설치했습니다. 둘 다 컴포넌트 0개·선택 없음에서 시작하고 생성된 npm scripts와 두 프로젝트 MCP 설정으로 실행했습니다. 반복 init의 바이트 보존, 기존 scripts/MCP/settings 보존, 늦은 충돌의 무변경, 적용 실패의 롤백을 확인했습니다.
 
